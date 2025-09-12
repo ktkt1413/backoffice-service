@@ -51,6 +51,7 @@ public class applicationRepositoryImpl implements ApplicationRepositoryCustom {
                         application.registrationNumber,
                         application.businessName,
                         application.owner,
+                        application.businessType,
                         application.address,
                         application.contactNumber,
                         application.email,

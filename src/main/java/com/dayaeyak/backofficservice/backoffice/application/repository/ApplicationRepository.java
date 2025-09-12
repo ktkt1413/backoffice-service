@@ -8,5 +8,4 @@ import java.util.Optional;
 
 public interface ApplicationRepository extends JpaRepository<Application, Long>, ApplicationRepositoryCustom {
     Optional<Application> findByIdAndDeletedAtIsNull(Long id);
-
 }
