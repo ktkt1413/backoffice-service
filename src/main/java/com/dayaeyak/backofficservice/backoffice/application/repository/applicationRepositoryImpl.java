@@ -2,7 +2,6 @@ package com.dayaeyak.backofficservice.backoffice.application.repository;
 
 import com.dayaeyak.backofficservice.backoffice.application.dtos.ApplicationResponseDto;
 import com.dayaeyak.backofficservice.backoffice.application.dtos.ApplicationSearchDto;
-import com.dayaeyak.backofficservice.backoffice.application.entity.Application;
 import com.dayaeyak.backofficservice.backoffice.common.enums.BusinessType;
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.Projections;
@@ -28,13 +27,13 @@ public class applicationRepositoryImpl implements ApplicationRepositoryCustom {
         BooleanBuilder builder = new BooleanBuilder();
 
         //Id 조회
-        if(searchDto.getId() != null) {
+        if (searchDto.getId() != null) {
             builder.and(application.id.eq(searchDto.getId()));
         }
-        if(searchDto.getSellerId() != null) {
+        if (searchDto.getSellerId() != null) {
             builder.and(application.sellerId.eq(searchDto.getSellerId()));
         }
-        if(searchDto.getRegistrationNumber() != null) {
+        if (searchDto.getRegistrationNumber() != null) {
             builder.and(application.registrationNumber.eq(searchDto.getRegistrationNumber()));
         }
 
@@ -76,23 +75,22 @@ public class applicationRepositoryImpl implements ApplicationRepositoryCustom {
     }
 
     // 사업명 조회
-    private BooleanExpression businessNameContains(String name){
+    private BooleanExpression businessNameContains(String name) {
         return name != null ? application.businessName.containsIgnoreCase(name) : null;
     }
+
     // 사장 이름으로 조회
-    private BooleanExpression ownerContains(String name){
+    private BooleanExpression ownerContains(String name) {
         return name != null ? application.owner.containsIgnoreCase(name) : null;
     }
 
     // 기간 조회
-    private BooleanExpression orderDateBetween(LocalDateTime start, LocalDateTime end){
-        if(start != null && end != null){
+    private BooleanExpression orderDateBetween(LocalDateTime start, LocalDateTime end) {
+        if (start != null && end != null) {
             return application.createdAt.between(start, end);
-        }
-        else if(start != null){
+        } else if (start != null) {
             return application.createdAt.goe(start);
-        }
-        else if( end != null){
+        } else if (end != null) {
             return application.createdAt.lt(end);
         } else {
             return null;
@@ -101,7 +99,7 @@ public class applicationRepositoryImpl implements ApplicationRepositoryCustom {
     }
 
     //신청 사업 타입별 조회
-    private BooleanExpression BusinessTypeEq(BusinessType type){
+    private BooleanExpression BusinessTypeEq(BusinessType type) {
         return type != null ? application.businessType.eq(type) : null;
     }
 }
