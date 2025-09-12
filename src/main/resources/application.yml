@@ -1,6 +1,38 @@
 spring:
   application:
     name: backoffice-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/backoffice
+    username: root
+    password: sparta1234
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: create
+    properties:
+      hibernate.dialect: org.hibernate.dialect.PostgreSQLDialect
+      format_sql: true
+  cloud:
+    discovery:
+      enabled: true
 
   profiles:
     active: dev
+
+server:
+  port: 19096
+
+eureka:
+  client:
+    register-with-eureka: false
+    fetch-registry: false
+  #    service-url:
+  #      defaultZone: http://localhost:19090/eureka
+  instance:
+    hostname: localhost
+
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE
