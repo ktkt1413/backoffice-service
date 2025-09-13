@@ -41,7 +41,7 @@ public class ApplicationController {
 
 
     // 조건 기반 검색(목록)
-    @GetMapping("/search")
+    @GetMapping
     public ResponseEntity<ApiResponse<Page<ApplicationResponseDto>>> searchApplication(@RequestBody ApplicationSearchDto searchDto,
                                                                                        @ModelAttribute AccessContext ctx,
                                                                                        Pageable pageable) {
@@ -72,6 +72,6 @@ public class ApplicationController {
     public ResponseEntity<ApiResponse<ApplicationResponseDto>> deleteApplication(@PathVariable Long id,
                                                                                  @ModelAttribute AccessContext ctx) {
         service.deleteApplication(id, ctx);
-        return ApiResponse.success(HttpStatus.NO_CONTENT, "신청서 삭제 성공", null);
+        return ApiResponse.success(HttpStatus.OK, "신청서 삭제 성공", null);
     }
 }

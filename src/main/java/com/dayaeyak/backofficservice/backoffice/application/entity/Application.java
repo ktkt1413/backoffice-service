@@ -20,7 +20,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "applicaion")
+@Table(name = "application")
 @SQLDelete(sql = "UPDATE application SET deleted_at= NOW() WHERE id =?")
 @Where(clause = "deleted_at IS Null")
 public class Application {
@@ -60,17 +60,17 @@ public class Application {
 
     //생성
 
-    public Application createApplication(ApplicationRequestDto dto, Long userId) {
+    public static Application createApplication(ApplicationRequestDto dto, Long userId) {
         return Application.builder()
-                .sellerId(this.sellerId)
-                .registrationNumber(this.registrationNumber)
-                .businessName(this.businessName)
-                .owner(this.owner)
-                .businessType(this.businessType)
-                .address(this.address)
-                .contactNumber(this.contactNumber)
-                .email(this.email)
-                .createdAt(this.createdAt)
+                .sellerId(userId)
+                .registrationNumber(dto.getRegistrationNumber())
+                .businessName(dto.getBusinessName())
+                .owner(dto.getOwner())
+                .businessType(dto.getBusinessType())
+                .address(dto.getAddress())
+                .contactNumber(dto.getContactNumber())
+                .email(dto.getEmail())
+                .createdAt(LocalDateTime.now())
                 .build();
     }
 

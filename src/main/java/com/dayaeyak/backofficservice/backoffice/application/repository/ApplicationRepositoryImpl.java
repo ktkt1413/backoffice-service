@@ -18,7 +18,7 @@ import java.util.List;
 import static com.dayaeyak.backofficservice.backoffice.application.entity.QApplication.application;
 
 @RequiredArgsConstructor
-public class applicationRepositoryImpl implements ApplicationRepositoryCustom {
+public class ApplicationRepositoryImpl implements ApplicationRepositoryCustom {
     private JPAQueryFactory queryFactory;
 
     @Override

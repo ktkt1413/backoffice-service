@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class ApplicationService {
     private final ApplicationRepository repository;
+    private final ApplicationRepository applicationRepository;
 
     // 단건 조회
     @Transactional
@@ -42,8 +43,8 @@ public class ApplicationService {
     @Transactional
     public ApplicationResponseDto createApplication(ApplicationRequestDto dto, AccessContext ctx) {
         AccessGuard.requiredPermission(Action.CREATE, ctx, ResourceScope.of(ctx.getUserId()));
-        Application application = new Application();
-        application.createApplication(dto, ctx.getUserId());
+        Application application = Application.createApplication(dto, ctx.getUserId());
+        applicationRepository.save(application);
         return ApplicationResponseDto.from(application);
     }
 
