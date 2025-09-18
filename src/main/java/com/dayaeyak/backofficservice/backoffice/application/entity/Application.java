@@ -2,7 +2,7 @@ package com.dayaeyak.backofficservice.backoffice.application.entity;
 
 
 import com.dayaeyak.backofficservice.backoffice.application.dtos.ApplicationRequestDto;
-import com.dayaeyak.backofficservice.backoffice.application.dtos.ApplicationResponseDto;
+import com.dayaeyak.backofficservice.backoffice.common.enums.ApplicationStatus;
 import com.dayaeyak.backofficservice.backoffice.common.enums.BusinessType;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
@@ -42,9 +42,11 @@ public class Application {
 
     private String address;
 
-    private Long contactNumber;
+    private String contactNumber;
 
     private String email;
+
+    private ApplicationStatus status;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
     @CreatedDate
@@ -70,6 +72,7 @@ public class Application {
                 .address(dto.getAddress())
                 .contactNumber(dto.getContactNumber())
                 .email(dto.getEmail())
+                .status(ApplicationStatus.PENDING)
                 .createdAt(LocalDateTime.now())
                 .build();
     }
@@ -86,26 +89,23 @@ public class Application {
         this.updatedAt = LocalDateTime.now();
     }
 
-    //소프트 삭제
-    public void deleteApplication() {
-        this.deletedAt = LocalDateTime.now();
+    // 신청서 승인
+    public void approve() {
+        if (this.status == ApplicationStatus.APPROVAL_REQUESTED) {
+            this.status = ApplicationStatus.APPROVED;
+            this.updatedAt = LocalDateTime.now();
+        } else {
+            throw new IllegalArgumentException("승인 요청된 신청서가 아닙니다.");
+        }
     }
 
-    public ApplicationResponseDto toResponseDto() {
-        ApplicationResponseDto dto = new ApplicationResponseDto();
-        dto.setId(this.id);
-        dto.setSellerId(this.sellerId);
-        dto.setRegistrationNumber(this.registrationNumber);
-        dto.setBusinessName(this.businessName);
-        dto.setOwner(this.owner);
-        dto.setBusinessType(this.businessType);
-        dto.setAddress(this.address);
-        dto.setContactNumber(this.contactNumber);
-        dto.setEmail(this.email);
-        dto.setCreatedAt(this.createdAt);
-        dto.setUpdatedAt(this.updatedAt);
-
-        return dto;
+    // 신청서 거절
+    public void reject() {
+        if (this.status == ApplicationStatus.APPROVAL_REQUESTED) {
+            this.status = ApplicationStatus.REJECTED;
+            this.updatedAt = LocalDateTime.now();
+        } else {
+            throw new IllegalArgumentException("승인 요청된 신청서가 아닙니다.");
+        }
     }
-
 }

@@ -2,6 +2,7 @@ package com.dayaeyak.backofficservice.backoffice.application.dtos;
 
 
 import com.dayaeyak.backofficservice.backoffice.application.entity.Application;
+import com.dayaeyak.backofficservice.backoffice.common.enums.ApplicationStatus;
 import com.dayaeyak.backofficservice.backoffice.common.enums.BusinessType;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -29,8 +30,9 @@ public class ApplicationResponseDto {
     private BusinessType businessType;
 
     private String address;
-    private Long contactNumber;
+    private String contactNumber;
     private String email;
+    private ApplicationStatus status;
 
     @JsonFormat(pattern = "HH:mm")
     private LocalDateTime createdAt;
@@ -49,6 +51,7 @@ public class ApplicationResponseDto {
                 .address(application.getAddress())
                 .contactNumber(application.getContactNumber())
                 .email(application.getEmail())
+                .status(application.getStatus())
                 .createdAt(application.getCreatedAt())
                 .updatedAt(application.getUpdatedAt())
                 .build();

@@ -5,6 +5,13 @@ import com.dayaeyak.backofficservice.backoffice.application.dtos.ApplicationResp
 import com.dayaeyak.backofficservice.backoffice.application.dtos.ApplicationSearchDto;
 import com.dayaeyak.backofficservice.backoffice.application.entity.Application;
 import com.dayaeyak.backofficservice.backoffice.application.repository.ApplicationRepository;
+import com.dayaeyak.backofficservice.backoffice.client.mapper.ApplicationToExhibitionMapper;
+import com.dayaeyak.backofficservice.backoffice.client.mapper.ApplicationToPerformanceMapper;
+import com.dayaeyak.backofficservice.backoffice.client.mapper.ApplicationToRestaurantMapper;
+import com.dayaeyak.backofficservice.backoffice.client.service.ExhibitionServiceClient;
+import com.dayaeyak.backofficservice.backoffice.client.service.PerformanceServiceClient;
+import com.dayaeyak.backofficservice.backoffice.client.service.RestaurantServiceClient;
+import com.dayaeyak.backofficservice.backoffice.common.enums.ApplicationStatus;
 import com.dayaeyak.backofficservice.backoffice.common.exception.BusinessException;
 import com.dayaeyak.backofficservice.backoffice.common.exception.ErrorCode;
 import com.dayaeyak.backofficservice.backoffice.common.security.AccessContext;
@@ -21,7 +28,9 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class ApplicationService {
     private final ApplicationRepository repository;
-    private final ApplicationRepository applicationRepository;
+    private final ExhibitionServiceClient exhibitionService;
+    private final RestaurantServiceClient restaurantService;
+    private final PerformanceServiceClient performanceService;
 
     // 단건 조회
     @Transactional
@@ -44,7 +53,7 @@ public class ApplicationService {
     public ApplicationResponseDto createApplication(ApplicationRequestDto dto, AccessContext ctx) {
         AccessGuard.requiredPermission(Action.CREATE, ctx, ResourceScope.of(ctx.getUserId()));
         Application application = Application.createApplication(dto, ctx.getUserId());
-        applicationRepository.save(application);
+        repository.save(application);
         return ApplicationResponseDto.from(application);
     }
 
@@ -67,4 +76,64 @@ public class ApplicationService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.APPLICATION_NOT_FOUND));
         repository.delete(application);
     }
+
+    //신청서 승인 요청
+    @Transactional
+    public void requestApproval(Long id, AccessContext ctx) {
+        AccessGuard.requiredPermission(Action.UPDATE, ctx, ResourceScope.of(ctx.getUserId()));
+        Application application = repository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.APPLICATION_NOT_FOUND));
+
+        application.setStatus(ApplicationStatus.APPROVAL_REQUESTED);
+        repository.save(application);
+
+    }
+
+    // 신청서 승인
+    @Transactional
+    public ApplicationResponseDto approveApplication(Long id, AccessContext ctx) {
+        AccessGuard.requiredPermission(Action.APPROVE, ctx, ResourceScope.of(ctx.getUserId()));
+        Application application = repository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.APPLICATION_NOT_FOUND));
+
+        application.approve();
+        repository.save(application);
+        registerExternalService(application);
+
+        return ApplicationResponseDto.from(application);
+    }
+
+    //신청서 거절
+    @Transactional
+    public ApplicationResponseDto rejectApplication(Long id, AccessContext ctx) {
+        AccessGuard.requiredPermission(Action.REJECT, ctx, ResourceScope.of(ctx.getUserId()));
+        Application application = repository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.APPLICATION_NOT_FOUND));
+        application.reject();
+        repository.save(application);
+
+        return ApplicationResponseDto.from(application);
+    }
+
+    //외부 서비스 호출
+    private void registerExternalService(Application application) {
+        try {
+            switch (application.getBusinessType()) {
+                case RESTAURANT:
+                    restaurantService.registerRestaurant(ApplicationToRestaurantMapper.toRestaurantRequestDto(application));
+                    break;
+                case PERFORMANCE:
+                    performanceService.registerPerformance(ApplicationToPerformanceMapper.toPerformanceRequestDto(application));
+                    break;
+                case EXHIBITION:
+                    exhibitionService.registerExhibition(ApplicationToExhibitionMapper.toExhibitionRequestDto(application));
+                    break;
+                default:
+                    throw new IllegalArgumentException("알 수 없는 서비스 타입입니다.");
+            }
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.EXTERNAL_SERVICE_FAILURE, e.getMessage());
+        }
+    }
+
 }

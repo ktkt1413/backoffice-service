@@ -22,7 +22,7 @@ public class ApplicationRequestDto {
 
     private String address;
 
-    private Long contactNumber;
+    private String contactNumber;
 
     private String email;
 
