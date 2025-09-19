@@ -20,13 +20,11 @@ public class ApplicationToRestaurantMapper {
                 .phoneNumber(application.getContactNumber())
 
                 // 신청서에는 없는 값 → 예시/기본값 세팅
-                .closedDay(ClosedDays.NONE)                // 기본값: 휴무일 없음
-                .openTime(LocalTime.of(9, 0))              // 기본값: 09:00 오픈
-                .closeTime(LocalTime.of(21, 0))            // 기본값: 21:00 마감
+                .closedDay(ClosedDays.SUNDAY)                // 기본값: 휴무일 없음
+                .openTime(LocalTime.parse("09:00"))  // LocalTime 그대로
+                .closeTime(LocalTime.parse("21:00"))      // 기본값: 21:00 마감
                 .capacity(50)                              // 기본값: 50명 수용
-                .isActivation(ActivationStatus.ON)         // 기본값: 활성화 상태 ON
                 .city("서울")                               // 기본값: "서울"
-                .waitingActivation(WaitingStatus.ON)       // 기본값: 대기 활성화 ON
                 .type(RestaurantType.KOREAN)               // 기본값: 한식 (예시)
                 .build();
     }

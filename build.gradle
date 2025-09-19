@@ -53,11 +53,11 @@ dependencies {
     testRuntimeOnly 'org.hsqldb:hsqldb'
 
     // actuator
-    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+//    implementation 'org.springframework.boot:spring-boot-starter-actuator'
 
     // Zipkin
-    implementation 'io.micrometer:micrometer-tracing-bridge-brave'
-    implementation 'io.zipkin.reporter2:zipkin-reporter-brave'
+//    implementation 'io.micrometer:micrometer-tracing-bridge-brave'
+//    implementation 'io.zipkin.reporter2:zipkin-reporter-brave'
 
     //카프카
     implementation 'org.springframework.kafka:spring-kafka'

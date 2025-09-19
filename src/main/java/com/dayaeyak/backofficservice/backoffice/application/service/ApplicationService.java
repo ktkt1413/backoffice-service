@@ -24,6 +24,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+
 @Service
 @RequiredArgsConstructor
 public class ApplicationService {
@@ -31,6 +32,7 @@ public class ApplicationService {
     private final ExhibitionServiceClient exhibitionService;
     private final RestaurantServiceClient restaurantService;
     private final PerformanceServiceClient performanceService;
+
 
     // 단건 조회
     @Transactional
@@ -98,7 +100,9 @@ public class ApplicationService {
 
         application.approve();
         repository.save(application);
-        registerExternalService(application);
+
+        // 외부 서비스 호출 (RestTemplate 사용)
+        registerExternalService(application, ctx);
 
         return ApplicationResponseDto.from(application);
     }
@@ -116,18 +120,33 @@ public class ApplicationService {
     }
 
     //외부 서비스 호출
-    private void registerExternalService(Application application) {
+    private void registerExternalService(Application application, AccessContext ctx) {
         try {
             switch (application.getBusinessType()) {
                 case RESTAURANT:
-                    restaurantService.registerRestaurant(ApplicationToRestaurantMapper.toRestaurantRequestDto(application));
+                    restaurantService.registerRestaurant(
+                            ctx.getUserId(),
+                            ctx.getRole().name(),
+                            ApplicationToRestaurantMapper.toRestaurantRequestDto(application)
+                    );
                     break;
+
                 case PERFORMANCE:
-                    performanceService.registerPerformance(ApplicationToPerformanceMapper.toPerformanceRequestDto(application));
+                    performanceService.registerPerformance(
+                            ctx.getUserId(),
+                            ctx.getRole().name(),
+                            ApplicationToPerformanceMapper.toPerformanceRequestDto(application)
+                    );
                     break;
+
                 case EXHIBITION:
-                    exhibitionService.registerExhibition(ApplicationToExhibitionMapper.toExhibitionRequestDto(application));
+                    exhibitionService.registerExhibition(
+                            ctx.getUserId(),
+                            ctx.getRole().name(),
+                            ApplicationToExhibitionMapper.toExhibitionRequestDto(application)
+                    );
                     break;
+
                 default:
                     throw new IllegalArgumentException("알 수 없는 서비스 타입입니다.");
             }
@@ -137,3 +156,4 @@ public class ApplicationService {
     }
 
 }
+

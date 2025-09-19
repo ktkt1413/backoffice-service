@@ -1,5 +1,7 @@
 package com.dayaeyak.backofficservice.backoffice.common.enums;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
@@ -12,13 +14,15 @@ public enum BusinessType {
     EXHIBITION("전시회"),
     RESTAURANT("음식점"),
     ;
+    @JsonValue
     private final String type;
 
+    @JsonCreator
     public static BusinessType of(String type) {
         return Stream.of(BusinessType.values())
-                .filter(businessType -> businessType.type.equalsIgnoreCase(type))
+                .filter(businessType -> businessType.type.equalsIgnoreCase(type)
+                        || businessType.name().equalsIgnoreCase(type))
                 .findFirst()
                 .orElseThrow(RuntimeException::new);
     }
-
 }
