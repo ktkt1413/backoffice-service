@@ -5,23 +5,41 @@ import com.dayaeyak.backofficservice.backoffice.application.dtos.ApplicationResp
 import com.dayaeyak.backofficservice.backoffice.application.dtos.ApplicationSearchDto;
 import com.dayaeyak.backofficservice.backoffice.application.entity.Application;
 import com.dayaeyak.backofficservice.backoffice.application.repository.ApplicationRepository;
+import com.dayaeyak.backofficservice.backoffice.client.mapper.ApplicationToExhibitionMapper;
+import com.dayaeyak.backofficservice.backoffice.client.mapper.ApplicationToPerformanceMapper;
+import com.dayaeyak.backofficservice.backoffice.client.mapper.ApplicationToRestaurantMapper;
+import com.dayaeyak.backofficservice.backoffice.client.service.ExhibitionServiceClient;
+import com.dayaeyak.backofficservice.backoffice.client.service.PerformanceServiceClient;
+import com.dayaeyak.backofficservice.backoffice.client.service.RestaurantServiceClient;
+import com.dayaeyak.backofficservice.backoffice.common.enums.ApplicationStatus;
 import com.dayaeyak.backofficservice.backoffice.common.exception.BusinessException;
 import com.dayaeyak.backofficservice.backoffice.common.exception.ErrorCode;
 import com.dayaeyak.backofficservice.backoffice.common.security.AccessContext;
 import com.dayaeyak.backofficservice.backoffice.common.security.AccessGuard;
 import com.dayaeyak.backofficservice.backoffice.common.security.Action;
 import com.dayaeyak.backofficservice.backoffice.common.security.ResourceScope;
+import com.dayaeyak.backofficservice.backoffice.kafka.ServiceTypeMapper;
+import com.dayaeyak.backofficservice.backoffice.kafka.producer.ProducerService;
+import com.dayaeyak.backofficservice.backoffice.kafka.producer.dtos.BackofficeRegisterDto;
+import com.dayaeyak.backofficservice.backoffice.kafka.producer.dtos.ServiceRegisterRequestDto;
+import com.dayaeyak.backofficservice.backoffice.kafka.producer.enums.ServiceType;
+import com.dayaeyak.backofficservice.backoffice.kafka.producer.enums.Status;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+
 @Service
 @RequiredArgsConstructor
 public class ApplicationService {
     private final ApplicationRepository repository;
-    private final ApplicationRepository applicationRepository;
+    private final ExhibitionServiceClient exhibitionService;
+    private final RestaurantServiceClient restaurantService;
+    private final PerformanceServiceClient performanceService;
+    private final ProducerService producerService;  // 카프카 프로듀서
+
 
     // 단건 조회
     @Transactional
@@ -44,7 +62,7 @@ public class ApplicationService {
     public ApplicationResponseDto createApplication(ApplicationRequestDto dto, AccessContext ctx) {
         AccessGuard.requiredPermission(Action.CREATE, ctx, ResourceScope.of(ctx.getUserId()));
         Application application = Application.createApplication(dto, ctx.getUserId());
-        applicationRepository.save(application);
+        repository.save(application);
         return ApplicationResponseDto.from(application);
     }
 
@@ -67,4 +85,120 @@ public class ApplicationService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.APPLICATION_NOT_FOUND));
         repository.delete(application);
     }
+
+    //신청서 승인 요청
+    @Transactional
+    public void requestApproval(Long id, AccessContext ctx) {
+        AccessGuard.requiredPermission(Action.UPDATE, ctx, ResourceScope.of(ctx.getUserId()));
+        Application application = repository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.APPLICATION_NOT_FOUND));
+
+        application.setStatus(ApplicationStatus.APPROVAL_REQUESTED);
+        repository.save(application);
+
+        // 관리자에게 승인 요청 알람 전송
+        BackofficeRegisterDto dto = new BackofficeRegisterDto(
+                ctx.getUserId(),
+                ServiceType.BACKOFFICE,
+                null,
+                ServiceTypeMapper.fromBusinessType(application.getBusinessType()),
+                application.getBusinessName(),
+                application.getOwner()
+        );
+
+        String topic = ServiceTypeMapper.fromBusinessType(application.getBusinessType()).name().toLowerCase();
+
+        producerService.sendBackOfficeRegister(topic, null, dto);
+
+    }
+
+    // 신청서 승인
+    @Transactional
+    public ApplicationResponseDto approveApplication(Long id, AccessContext ctx) {
+        AccessGuard.requiredPermission(Action.APPROVE, ctx, ResourceScope.of(ctx.getUserId()));
+        Application application = repository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.APPLICATION_NOT_FOUND));
+
+        application.approve();
+        repository.save(application);
+
+        // 외부 서비스 호출 (RestTemplate 사용)
+        registerExternalService(application, ctx);
+
+        // 신청자에게 승인 알람 전송
+        ServiceRegisterRequestDto dto = new ServiceRegisterRequestDto(
+                ctx.getUserId(),
+                ServiceType.BACKOFFICE,
+                null,
+                application.getOwner(),
+                Status.APPROVED
+        );
+
+        String topic = ServiceTypeMapper.fromBusinessType(application.getBusinessType()).name().toLowerCase();
+        producerService.sendRegisterResult(topic, null, dto);
+
+        return ApplicationResponseDto.from(application);
+    }
+
+    //신청서 거절
+    @Transactional
+    public ApplicationResponseDto rejectApplication(Long id, AccessContext ctx) {
+        AccessGuard.requiredPermission(Action.REJECT, ctx, ResourceScope.of(ctx.getUserId()));
+        Application application = repository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.APPLICATION_NOT_FOUND));
+        application.reject();
+        repository.save(application);
+
+        // 신청자에게 거절 알람 전송
+        ServiceRegisterRequestDto dto = new ServiceRegisterRequestDto(
+                ctx.getUserId(),
+                ServiceType.BACKOFFICE,
+                null,
+                application.getOwner(),
+                Status.DECLINED
+        );
+
+        String topic = ServiceTypeMapper.fromBusinessType(application.getBusinessType()).name().toLowerCase();
+        producerService.sendRegisterResult(topic, null, dto);
+
+        return ApplicationResponseDto.from(application);
+    }
+
+    //외부 서비스 호출
+    private void registerExternalService(Application application, AccessContext ctx) {
+        try {
+            switch (application.getBusinessType()) {
+                case RESTAURANT:
+                    restaurantService.registerRestaurant(
+                            ctx.getUserId(),
+                            ctx.getRole().name(),
+                            ApplicationToRestaurantMapper.toRestaurantRequestDto(application)
+                    );
+                    break;
+
+                case PERFORMANCE:
+                    performanceService.registerPerformance(
+                            ctx.getUserId(),
+                            ctx.getRole().name(),
+                            ApplicationToPerformanceMapper.toPerformanceRequestDto(application)
+                    );
+                    break;
+
+                case EXHIBITION:
+                    exhibitionService.registerExhibition(
+                            ctx.getUserId(),
+                            ctx.getRole().name(),
+                            ApplicationToExhibitionMapper.toExhibitionRequestDto(application)
+                    );
+                    break;
+
+                default:
+                    throw new IllegalArgumentException("알 수 없는 서비스 타입입니다.");
+            }
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.EXTERNAL_SERVICE_FAILURE, e.getMessage());
+        }
+    }
+
 }
+

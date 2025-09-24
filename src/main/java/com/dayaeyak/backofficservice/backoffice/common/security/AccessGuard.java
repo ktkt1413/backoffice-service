@@ -36,7 +36,7 @@ public class AccessGuard {
             throw new BusinessException(ErrorCode.ACCESS_DENIED, "등록된 만 접근할 수 있습니다.");
         }
 
-        if (action != Action.UPDATE) {
+        if (action != Action.UPDATE && action != Action.CREATE) {
             throw new BusinessException(ErrorCode.ACCESS_DENIED, "판매자는 수정만 가능합니다.");
         }
     }

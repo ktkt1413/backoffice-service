@@ -74,4 +74,29 @@ public class ApplicationController {
         service.deleteApplication(id, ctx);
         return ApiResponse.success(HttpStatus.OK, "신청서 삭제 성공", null);
     }
+
+    // 신청서 승인 요청
+    @PostMapping("/{id}/register")
+    public ResponseEntity<ApiResponse<Void>> requestApproval(@PathVariable Long id,
+                                                             @ModelAttribute AccessContext ctx) {
+        service.requestApproval(id, ctx);
+        return ApiResponse.success(HttpStatus.OK, "신청 완료", null);
+    }
+
+    // 신청서 승인
+    @PostMapping("/{id}/approve")
+    public ResponseEntity<ApiResponse<ApplicationResponseDto>> approve(@PathVariable Long id,
+                                                                       @ModelAttribute AccessContext ctx) {
+        ApplicationResponseDto dto = service.approveApplication(id, ctx);
+        return ApiResponse.success(HttpStatus.OK, "승인 완료", dto);
+    }
+
+    // 신청서 거절
+    @PostMapping("/{id}/reject")
+    public ResponseEntity<ApiResponse<ApplicationResponseDto>> reject(@PathVariable Long id,
+                                                                      @ModelAttribute AccessContext ctx) {
+        ApplicationResponseDto dto = service.rejectApplication(id, ctx);
+        return ApiResponse.success(HttpStatus.OK, "거절 완료", dto);
+    }
+
 }
