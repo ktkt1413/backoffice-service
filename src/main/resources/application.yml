@@ -39,7 +39,7 @@ eureka:
       defaultZone: ${EUREKA_DEFAULT_ZONE}
   instance:
     prefer-ip-address: true
-    ip-address: ${EC2_IP} # 마이크로 서비스 ec2 IP
+    # ip-address: ${EC2_IP} # 마이크로 서비스 ec2 IP
     register-with-eureka: true
     fetch-registry: true
     deregister-on-shutdown: true

@@ -10,7 +10,6 @@ import com.dayaeyak.backofficservice.backoffice.common.security.Action;
 import com.dayaeyak.backofficservice.backoffice.user.annotation.Authorize;
 import com.dayaeyak.backofficservice.backoffice.user.annotation.PassportHolder;
 import com.dayaeyak.backofficservice.backoffice.user.dto.Passport;
-import com.dayaeyak.backofficservice.backoffice.user.enums.UserRole;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -39,8 +38,8 @@ public class ApplicationController {
     @Authorize(checkOwner = true, action = Action.READ)
     @GetMapping
     public ResponseEntity<ApiResponse<Page<ApplicationResponseDto>>> searchApplication(@RequestBody ApplicationSearchDto searchDto,
-                                                                                       @PassportHolder Passport passport,
-                                                                                       Pageable pageable) {
+                                                                                         @PassportHolder Passport passport,
+                                                                                         Pageable pageable) {
         Page<ApplicationResponseDto> pageDto = service.getApplications(searchDto, pageable);
         return ApiResponse.success(HttpStatus.OK, "신청서 조회 성공", pageDto);
     }
@@ -49,7 +48,7 @@ public class ApplicationController {
     @Authorize(checkOwner = false, action = Action.CREATE)
     @PostMapping
     public ResponseEntity<ApiResponse<ApplicationResponseDto>> createApplication(@Valid @RequestBody ApplicationRequestDto dto,
-                                                                                 @PassportHolder Passport passport) {
+                                                                                   @PassportHolder Passport passport) {
         ApplicationResponseDto responseDto = service.createApplication(dto, passport.userId());
         return ApiResponse.success(HttpStatus.OK, "신청서 생성 성공", responseDto);
     }
@@ -58,8 +57,8 @@ public class ApplicationController {
     @Authorize(checkOwner = true, action = Action.UPDATE, resourceId = "id")
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<ApplicationResponseDto>> updateApplication(@PathVariable Long id,
-                                                                                 @Valid @RequestBody ApplicationRequestDto dto,
-                                                                                 @PassportHolder Passport passport
+                                                                                   @Valid @RequestBody ApplicationRequestDto dto,
+                                                                                   @PassportHolder Passport passport
     ) {
         ApplicationResponseDto responseDto = service.updateApplication(id, dto);
         return ApiResponse.success(HttpStatus.OK, "신청서 수정 성공", responseDto);
@@ -69,7 +68,7 @@ public class ApplicationController {
     @Authorize(checkOwner = true, action = Action.DELETE, resourceId = "id")
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<ApplicationResponseDto>> deleteApplication(@PathVariable Long id,
-                                                                                 @PassportHolder Passport passport
+                                                                                   @PassportHolder Passport passport
     ) {
         service.deleteApplication(id);
         return ApiResponse.success(HttpStatus.OK, "신청서 삭제 성공", null);
@@ -79,7 +78,7 @@ public class ApplicationController {
     @Authorize(checkOwner = true, action = Action.UPDATE, resourceId = "id")
     @PostMapping("/{id}/register")
     public ResponseEntity<ApiResponse<Void>> requestApproval(@PathVariable Long id,
-                                                             @PassportHolder Passport passport
+                                                               @PassportHolder Passport passport
     ) {
         service.requestApproval(id, passport.userId());
         return ApiResponse.success(HttpStatus.OK, "신청 완료", null);
@@ -89,7 +88,7 @@ public class ApplicationController {
     @Authorize(action = Action.APPROVE, resourceId = "id")
     @PostMapping("/{id}/approve")
     public ResponseEntity<ApiResponse<ApplicationResponseDto>> approve(@PathVariable Long id,
-                                                                       @PassportHolder Passport passport
+                                                                         @PassportHolder Passport passport
     ) {
         ApplicationResponseDto dto = service.approveApplication(id, passport.userId(), passport.role());
         return ApiResponse.success(HttpStatus.OK, "승인 완료", dto);
@@ -99,7 +98,7 @@ public class ApplicationController {
     @Authorize(action = Action.REJECT, resourceId = "id")
     @PostMapping("/{id}/reject")
     public ResponseEntity<ApiResponse<ApplicationResponseDto>> reject(@PathVariable Long id,
-                                                                      @PassportHolder Passport passport
+                                                                        @PassportHolder Passport passport
     ) {
         ApplicationResponseDto dto = service.rejectApplication(id, passport.userId());
         return ApiResponse.success(HttpStatus.OK, "거절 완료", dto);
