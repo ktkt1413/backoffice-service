@@ -29,6 +29,10 @@ spring:
 server:
   port: ${SERVER_PORT}
 
+openai:
+  api-key: ${OPENAI_API_KEY:}
+  model: gpt-5.4-mini
+
 eureka:
   client:
     service-url:
