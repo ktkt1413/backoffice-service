@@ -11,15 +11,17 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 import static com.dayaeyak.backofficservice.backoffice.application.entity.QApplication.application;
 
+@Repository
 @RequiredArgsConstructor
 public class ApplicationRepositoryImpl implements ApplicationRepositoryCustom {
-    private JPAQueryFactory queryFactory;
+    private final JPAQueryFactory queryFactory;
 
     @Override
     public Page<ApplicationResponseDto> searchApplication(ApplicationSearchDto searchDto, Pageable pageable) {
@@ -55,6 +57,7 @@ public class ApplicationRepositoryImpl implements ApplicationRepositoryCustom {
                         application.address,
                         application.contactNumber,
                         application.email,
+                        application.status,
                         application.createdAt,
                         application.updatedAt
                 ))
