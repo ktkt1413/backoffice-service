@@ -4,6 +4,8 @@ package com.dayaeyak.backofficservice.backoffice.application.entity;
 import com.dayaeyak.backofficservice.backoffice.application.dtos.ApplicationRequestDto;
 import com.dayaeyak.backofficservice.backoffice.common.enums.ApplicationStatus;
 import com.dayaeyak.backofficservice.backoffice.common.enums.BusinessType;
+import com.dayaeyak.backofficservice.backoffice.common.exception.BusinessException;
+import com.dayaeyak.backofficservice.backoffice.common.exception.ErrorCode;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import lombok.*;
@@ -91,13 +93,33 @@ public class Application {
         this.updatedAt = LocalDateTime.now();
     }
 
-    // 신청서 승인
-    public void approve() {
+    // 신청서 승인 처리 시작
+    public void startApproval() {
         if (this.status == ApplicationStatus.APPROVAL_REQUESTED) {
+            this.status = ApplicationStatus.APPROVING;
+            this.updatedAt = LocalDateTime.now();
+        } else {
+            throw new BusinessException(ErrorCode.INVALID_APPLICATION_STATUS, "승인 요청된 신청서만 승인 처리할 수 있습니다.");
+        }
+    }
+
+    // 신청서 승인 완료
+    public void approve() {
+        if (this.status == ApplicationStatus.APPROVING) {
             this.status = ApplicationStatus.APPROVED;
             this.updatedAt = LocalDateTime.now();
         } else {
-            throw new IllegalArgumentException("승인 요청된 신청서가 아닙니다.");
+            throw new BusinessException(ErrorCode.INVALID_APPLICATION_STATUS, "승인 처리 중인 신청서만 승인 완료할 수 있습니다.");
+        }
+    }
+
+    // 신청서 승인 실패
+    public void failApproval() {
+        if (this.status == ApplicationStatus.APPROVING) {
+            this.status = ApplicationStatus.APPROVAL_FAILED;
+            this.updatedAt = LocalDateTime.now();
+        } else {
+            throw new BusinessException(ErrorCode.INVALID_APPLICATION_STATUS, "승인 처리 중인 신청서만 승인 실패 처리할 수 있습니다.");
         }
     }
 
@@ -107,7 +129,7 @@ public class Application {
             this.status = ApplicationStatus.REJECTED;
             this.updatedAt = LocalDateTime.now();
         } else {
-            throw new IllegalArgumentException("승인 요청된 신청서가 아닙니다.");
+            throw new BusinessException(ErrorCode.INVALID_APPLICATION_STATUS, "승인 요청된 신청서만 거절할 수 있습니다.");
         }
     }
 }

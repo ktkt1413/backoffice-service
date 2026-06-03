@@ -26,6 +26,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 
 @Service
@@ -103,24 +105,33 @@ public class ApplicationService {
                 application.getOwner()
         );
 
-        String topic = ServiceTypeMapper.fromBusinessType(application.getBusinessType()).name().toLowerCase();
+        String topic = "register";
 
-        producerService.sendBackOfficeRegister(topic, null, dto);
+        sendBackOfficeRegisterAfterCommit(topic, dto);
 
     }
 
     // 신청서 승인
-    @Transactional
+    @Transactional(noRollbackFor = BusinessException.class)
     public ApplicationResponseDto approveApplication(Long id, Long userId, UserRole role) {
 
         Application application = repository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.APPLICATION_NOT_FOUND));
 
+        application.startApproval();
+        repository.saveAndFlush(application);
+
+        try {
+            // 외부 서비스 호출 (RestTemplate 사용)
+            registerExternalService(application, userId, role);
+        } catch (BusinessException e) {
+            application.failApproval();
+            repository.save(application);
+            throw e;
+        }
+
         application.approve();
         repository.save(application);
-
-        // 외부 서비스 호출 (RestTemplate 사용)
-        registerExternalService(application, userId, role);
 
         // 신청자에게 승인 알람 전송
         ServiceRegisterRequestDto dto = new ServiceRegisterRequestDto(
@@ -132,7 +143,7 @@ public class ApplicationService {
         );
 
         String topic = ServiceTypeMapper.fromBusinessType(application.getBusinessType()).name().toLowerCase();
-        producerService.sendRegisterResult(topic, null, dto);
+        sendRegisterResultAfterCommit(topic, dto);
 
         return ApplicationResponseDto.from(application);
     }
@@ -157,7 +168,7 @@ public class ApplicationService {
         );
 
         String topic = ServiceTypeMapper.fromBusinessType(application.getBusinessType()).name().toLowerCase();
-        producerService.sendRegisterResult(topic, null, dto);
+        sendRegisterResultAfterCommit(topic, dto);
 
         return ApplicationResponseDto.from(application);
     }
@@ -192,5 +203,30 @@ public class ApplicationService {
         }
     }
 
-}
+    private void sendRegisterResultAfterCommit(String topic, ServiceRegisterRequestDto dto) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    producerService.sendRegisterResult(topic, null, dto);
+                }
+            });
+        } else {
+            producerService.sendRegisterResult(topic, null, dto);
+        }
+    }
 
+    private void sendBackOfficeRegisterAfterCommit(String topic, BackofficeRegisterDto dto) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    producerService.sendBackOfficeRegister(topic, null, dto);
+                }
+            });
+        } else {
+            producerService.sendBackOfficeRegister(topic, null, dto);
+        }
+    }
+
+}
